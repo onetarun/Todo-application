@@ -52,13 +52,34 @@
   height: 12px;
   border-radius: 50%;
   flex: none;
+  /* Keeps light or dark tag colors visible against both themes. */
+  box-shadow: 0 0 0 1px var(--mat-sys-outline);
 }
 
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
+/* Theme-aware link color (the browser default blue is unreadable on the dark theme). */
+a {
+  color: var(--mat-sys-primary);
+}
+
+/* Visible keyboard focus for elements Material does not style (WCAG 2.4.7). */
+a:focus-visible,
+input[type='color']:focus-visible,
+main h1:focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 2px;
+}
+
+/* Headings receive focus programmatically after navigation; no ring unless the user is on the keyboard. */
+main h1:focus:not(:focus-visible) {
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }

@@ -8,6 +8,9 @@ namespace TodoApi.Services;
 
 public class ReminderService(TodoDbContext db) : IReminderService
 {
+    // How far back due reminders are returned: reminders missed by longer than this are not notified.
+    public static readonly TimeSpan DueWindow = TimeSpan.FromHours(24);
+
     private static readonly Expression<Func<Reminder, ReminderDto>> ToDto =
         r => new ReminderDto(r.Id, r.TaskId, r.RemindAt);
 
@@ -42,6 +45,20 @@ public class ReminderService(TodoDbContext db) : IReminderService
         db.Reminders.Add(reminder);
         await db.SaveChangesAsync(cancellationToken);
         return ToDtoCompiled(reminder);
+    }
+
+    public async Task<IReadOnlyList<DueReminderDto>> GetDueAsync(
+        int userId, DateTime before, CancellationToken cancellationToken)
+    {
+        var until = UtcDateTimeConverter.ToUtc(before);
+        var from = until - DueWindow;
+
+        return await db.Reminders
+            .AsNoTracking()
+            .Where(r => r.Task.TodoList.UserId == userId && r.RemindAt > from && r.RemindAt <= until)
+            .OrderByDescending(r => r.RemindAt).ThenByDescending(r => r.Id)
+            .Select(r => new DueReminderDto(r.Id, r.TaskId, r.Task.Title, r.RemindAt))
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<bool> DeleteAsync(int userId, int reminderId, CancellationToken cancellationToken)

@@ -1588,6 +1588,70 @@
               ]
             }
           }
+        },
+        {
+          "name": "Get due reminders",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Due reminder carries the task title', () => { const due = pm.response.json(); pm.expect(due.map(r => r.id)).to.eql([pm.collectionVariables.get('reminderId')]); pm.expect(due[0].taskTitle).to.eql('Write final report'); pm.expect(due[0].remindAt).to.eql('2026-10-31T09:00:00Z'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reminders?before=2026-10-31T10:00:00Z",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "reminders"
+              ],
+              "query": [
+                {
+                  "key": "before",
+                  "value": "2026-10-31T10:00:00Z"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get due reminders - missing before (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Body is ProblemDetails', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reminders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "reminders"
+              ]
+            }
+          }
         }
       ]
     },

@@ -7,6 +7,8 @@
 
 html {
   height: 100%;
+  // Follow the operating system's light/dark setting (docs/plan.md, Phase 6).
+  color-scheme: light dark;
   @include mat.theme(
     (
       color: (
@@ -17,14 +19,11 @@ html {
       density: 0,
     )
   );
+  // Clearly visible keyboard focus on Material components (WCAG 2.4.7).
+  @include mat.strong-focus-indicators();
 }
 
 body {
-  // Default the application to a light color theme. This can be changed to
-  // `dark` to enable the dark color theme, or to `light dark` to defer to the
-  // user's system settings.
-  color-scheme: light;
-
   // Set a default background, font and text colors for the application using
   // Angular Material's system-level CSS variables. Learn more about these
   // variables at https://material.angular.dev/guide/system-variables

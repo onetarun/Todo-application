@@ -13,6 +13,11 @@ public interface IReminderService
     Task<ReminderDto?> CreateAsync(
         int userId, int taskId, CreateReminderRequest request, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// The user's reminders due in the window (before − <see cref="ReminderService.DueWindow"/>, before], newest first.
+    /// </summary>
+    Task<IReadOnlyList<DueReminderDto>> GetDueAsync(int userId, DateTime before, CancellationToken cancellationToken);
+
     /// <returns>false when the reminder does not exist for this user.</returns>
     Task<bool> DeleteAsync(int userId, int reminderId, CancellationToken cancellationToken);
 }

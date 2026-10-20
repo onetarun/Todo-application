@@ -21,11 +21,14 @@ describe('ReminderService', () => {
     service.getForTask(5).subscribe();
     service.create(5, { remindAt: '2026-10-31T09:00:00.000Z' }).subscribe();
     service.delete(31).subscribe();
+    service.getDue('2026-10-31T10:00:00.000Z').subscribe();
 
     expect(http.expectOne({ method: 'GET', url: '/api/tasks/5/reminders' })).toBeTruthy();
     expect(http.expectOne({ method: 'POST', url: '/api/tasks/5/reminders' }).request.body).toEqual({
       remindAt: '2026-10-31T09:00:00.000Z',
     });
     expect(http.expectOne({ method: 'DELETE', url: '/api/reminders/31' })).toBeTruthy();
+    const due = http.expectOne((r) => r.method === 'GET' && r.url === '/api/reminders');
+    expect(due.request.params.get('before')).toBe('2026-10-31T10:00:00.000Z');
   });
 });

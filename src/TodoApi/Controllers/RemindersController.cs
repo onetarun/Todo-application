@@ -30,6 +30,15 @@ public class RemindersController(IReminderService reminderService, ICurrentUser 
         return reminder is null ? NotFound() : CreatedAtAction(nameof(GetForTask), new { taskId }, reminder);
     }
 
+    // Polled by the client to show in-app notifications (docs/plan.md, decision 7).
+    [HttpGet("reminders")]
+    [ProducesResponseType<IReadOnlyList<DueReminderDto>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<IReadOnlyList<DueReminderDto>>> GetDue(
+        [FromQuery] DueReminderQuery query, CancellationToken cancellationToken) =>
+        // Before is [Required]; model validation guarantees it is present here.
+        Ok(await reminderService.GetDueAsync(currentUser.RequiredUserId, query.Before!.Value, cancellationToken));
+
     [HttpDelete("reminders/{id:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

@@ -9,7 +9,7 @@ public class UtcDateTimeConverter() : ValueConverter<DateTime, DateTime>(
     v => DateTime.SpecifyKind(v, DateTimeKind.Utc))
 {
     // A value without an offset is taken to be UTC already; a local value is converted.
-    private static DateTime ToUtc(DateTime value) => value.Kind switch
+    public static DateTime ToUtc(DateTime value) => value.Kind switch
     {
         DateTimeKind.Local => value.ToUniversalTime(),
         DateTimeKind.Unspecified => DateTime.SpecifyKind(value, DateTimeKind.Utc),

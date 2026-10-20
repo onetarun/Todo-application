@@ -11,6 +11,7 @@ import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { routes } from './app.routes';
 import { authInterceptor } from './core/auth-interceptor';
 import { AuthService } from './core/auth.service';
+import { ReminderNotifier } from './core/reminder-notifier';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -24,5 +25,8 @@ export const appConfig: ApplicationConfig = {
     }),
     // Restore the session before the first navigation so route guards see the signed-in user.
     provideAppInitializer(() => inject(AuthService).restoreSession()),
+    provideAppInitializer(() => {
+      inject(ReminderNotifier).start();
+    }),
   ],
 };

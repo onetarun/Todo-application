@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  api:
+    name: API — build and test
+    # The API tests use SQL Server LocalDB, which only runs on Windows (installed with Visual Studio on the image).
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Start SQL Server LocalDB
+        shell: pwsh
+        run: |
+          sqllocaldb start MSSQLLocalDB
+          sqllocaldb info MSSQLLocalDB
+
+      - name: Restore
+        run: dotnet restore TodoApplication.slnx
+
+      - name: Build
+        run: dotnet build TodoApplication.slnx --no-restore --configuration Release
+
+      # Each run creates and drops its own throwaway database (tests/TodoApi.Tests/Infrastructure/ApiFixture.cs).
+      - name: Test
+        run: dotnet test TodoApplication.slnx --no-build --configuration Release
+
+  client:
+    name: Client — build and test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npx ng build
+
+      - name: Test
+        run: npx ng test --watch=false

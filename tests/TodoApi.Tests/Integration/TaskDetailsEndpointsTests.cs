@@ -105,6 +105,29 @@ public class TaskDetailsEndpointsTests(ApiFixture fixture)
     }
 
     [Fact]
+    public async Task DueReminders_ReturnsOwnDueRemindersWithTaskTitle()
+    {
+        var (client, taskId) = await CreateClientWithTaskAsync(fixture.Factory);
+        var (intruder, _) = await CreateClientWithTaskAsync(fixture.Factory);
+        var remindAt = new DateTime(2026, 10, 31, 9, 0, 0, DateTimeKind.Utc);
+        await client.PostAsJsonAsync($"/api/tasks/{taskId}/reminders", new { remindAt }, ApiClient.Json);
+
+        var due = await client.GetAsync("/api/reminders?before=2026-10-31T10:00:00Z");
+        var notYet = await client.GetAsync("/api/reminders?before=2026-10-31T08:59:00Z");
+        var othersView = await intruder.GetAsync("/api/reminders?before=2026-10-31T10:00:00Z");
+        var missing = await client.GetAsync("/api/reminders");
+        var invalid = await client.GetAsync("/api/reminders?before=soon");
+
+        Assert.Equal(HttpStatusCode.OK, due.StatusCode);
+        var reminder = Assert.Single(await due.ReadAsync<List<DueReminderDto>>());
+        Assert.Equal((taskId, "Task", remindAt), (reminder.TaskId, reminder.TaskTitle, reminder.RemindAt));
+        Assert.Empty(await notYet.ReadAsync<List<DueReminderDto>>());
+        Assert.Empty(await othersView.ReadAsync<List<DueReminderDto>>());
+        Assert.Equal(HttpStatusCode.BadRequest, missing.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
+    }
+
+    [Fact]
     public async Task Tags_CrudAndAssignment_Flow()
     {
         var (client, taskId) = await CreateClientWithTaskAsync(fixture.Factory);

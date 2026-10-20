@@ -7,7 +7,8 @@
   </a>
 
   @if (auth.currentUser(); as user) {
-    <nav class="nav" aria-label="Main">
+    <!-- Wide screens: inline navigation. -->
+    <nav class="nav wide-only" aria-label="Main">
       <a mat-button routerLink="/lists" routerLinkActive="active" ariaCurrentWhenActive="page"
         >Lists</a
       >
@@ -16,11 +17,37 @@
       >
     </nav>
     <span class="spacer"></span>
-    <span class="user-name">{{ user.name }}</span>
-    <button mat-button type="button" (click)="signOut()">
+    <span class="user-name wide-only">{{ user.name }}</span>
+    <button mat-button type="button" class="wide-only" (click)="signOut()">
       <mat-icon aria-hidden="true">logout</mat-icon>
       Sign out
     </button>
+
+    <!-- Narrow screens: the same actions in a menu. -->
+    <button
+      mat-icon-button
+      type="button"
+      class="narrow-only"
+      [matMenuTriggerFor]="mainMenu"
+      aria-label="Open menu"
+    >
+      <mat-icon aria-hidden="true">menu</mat-icon>
+    </button>
+    <mat-menu #mainMenu="matMenu" xPosition="before">
+      <div class="menu-user" aria-hidden="true">{{ user.name }}</div>
+      <a mat-menu-item routerLink="/lists">
+        <mat-icon aria-hidden="true">list</mat-icon>
+        <span>Lists</span>
+      </a>
+      <a mat-menu-item routerLink="/tags">
+        <mat-icon aria-hidden="true">sell</mat-icon>
+        <span>Tags</span>
+      </a>
+      <button mat-menu-item type="button" (click)="signOut()">
+        <mat-icon aria-hidden="true">logout</mat-icon>
+        <span>Sign out</span>
+      </button>
+    </mat-menu>
   }
 </mat-toolbar>
 

@@ -121,7 +121,9 @@
               }
             </div>
             <mat-form-field appearance="outline" subscriptSizing="dynamic" class="status-select">
-              <mat-label>Status</mat-label>
+              <mat-label
+                >Status<span class="cdk-visually-hidden"> of {{ task.title }}</span></mat-label
+              >
               <mat-select
                 [value]="task.status"
                 (selectionChange)="changeStatus(task, $event.value)"

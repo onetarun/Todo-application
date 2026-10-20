@@ -18,7 +18,7 @@ Backend: ASP.NET Core Web API (.NET 10, controllers). Frontend: Angular 22. Pers
 | 4 | `Task.status` values | Enum stored as string, e.g. `Todo` · `InProgress` · `Done` | **`Todo` · `InProgress` · `Done`**, stored as string |
 | 5 | `Task.priority` range | e.g. `1` (low) – `3` (high) · `1`–`5` | **`1` (low) – `3` (high)**, enforced by check constraint |
 | 6 | Tag ownership | Global (as in diagram, no `userId`) · per-user (add `userId` FK) | **Global** (as in diagram) |
-| 7 | Reminder delivery | Storage only · in-app notification · email | Open |
+| 7 | Reminder delivery | Storage only · in-app notification · email | **In-app notification** while the app is open (v1, Phase 6); no OS/email notifications |
 
 ## Data Model
 
@@ -340,11 +340,91 @@ warnings — initial bundle 452.5 kB raw / 111.9 kB transfer (under the 500 kB b
 through `http://localhost:4200/api` succeeded). **Not done:** a click-through in a real browser — no browser
 automation was available in this session; to be checked by the user.
 
-## Phase 6 — Polish & Delivery — `Planned`
+## Phase 6 — Polish & Delivery — `Done`
 
-- [ ] Responsive, accessible styling
-- [ ] README with setup and run instructions
-- [ ] Push to remote; optional CI (build + test for API and client)
+Decisions (2026-10-20):
+- **CI:** GitHub Actions on every push and pull request. API job on `windows-latest` (tests keep using LocalDB —
+  confirm it is on the image, otherwise start it in a step; no test-code changes); client job on `ubuntu-latest`.
+- **Theme:** follow the OS light/dark setting (`color-scheme: light dark`); no toggle.
+- **Reminders:** in-app notifications while the app is open (closes decision 7). Requires one new, additive endpoint
+  (approved; CLAUDE.md §10).
+- **Accessibility:** manual review against the checklist below; no new packages.
+
+Styling and accessibility:
+- [x] Responsive layout: toolbar collapses to a menu on narrow screens; tasks list and task detail stack cleanly
+  down to 360 px; touch targets ≥ 44 px
+- [x] Visual polish: consistent spacing; priority/status colors meet WCAG AA contrast and always carry a text label
+- [x] Theme follows the OS light/dark setting; custom colors checked in both modes
+- [x] Focus moves to the page heading on navigation (announced by screen readers); visible focus styles; every
+  icon-only button labelled; errors announced (`role="alert"`); `prefers-reduced-motion` respected
+
+Reminder notifications:
+
+| Method | Route | Request | Response |
+|--------|-------|---------|----------|
+| GET | `/api/reminders` | query: `before` (UTC, required) | `200` `DueReminderDto[]` · `400` |
+
+- [x] Backend: `DueReminderDto(Id, TaskId, TaskTitle, RemindAt)`; returns the current user's reminders with
+  `RemindAt` between `before − 24 h` and `before`, newest first; scoped through the task's list; no schema change
+- [x] Backend tests (service + endpoint, per-user isolation, 24-hour window, validation) and a Postman request
+- [x] Client: `DueReminder` model; `ReminderService.getDue(before)`; `ReminderNotifier` runs while signed in — checks
+  on sign-in and every 60 s, shows each due reminder once as a snackbar ("Reminder: <task title>") with an **Open**
+  action to the task; shown reminder ids kept in `localStorage` (per browser, not per account)
+- [x] Client tests for the notifier (shows once, skips already-shown, stops on sign-out)
+- Limitations (documented in the README): only while the app is open in a tab; up to ~1 minute late; reminders
+  missed by more than 24 hours are not shown.
+
+README:
+- [x] Root `README.md`: overview, stack, prerequisites (.NET 10 SDK, SQL Server LocalDB, Node), one-time setup
+  (JWT signing key in user secrets, `dotnet ef database update`), running API and client, running tests and the
+  Postman collection, API overview, project layout, key decisions (token storage, global tags, UTC dates,
+  reminders), CI badge
+- [x] `client/README.md`: replace the Angular boilerplate with a short pointer to the root README
+
+Delivery:
+- [x] Push to remote (GitHub, decision 2)
+- [x] CI workflow `.github/workflows/ci.yml`: API (`windows-latest`: .NET 10, LocalDB, `dotnet build`,
+  `dotnet test`) and client (`ubuntu-latest`: Node, `npm ci`, `ng build`, `ng test`)
+
+Verification: backend build and `dotnet test`, client `ng build` and `ng test`, Postman run all pass; CI green on
+GitHub; layout checked at phone and desktop widths. The browser click-through (carried over from Phase 5) and the
+responsive/keyboard checks need a browser — done by Claude if the Claude in Chrome extension is enabled, otherwise
+by the user.
+
+Implementation notes (2026-10-20):
+- Reminders endpoint: `GET /api/reminders?before=` (`DueReminderQuery`, `DueReminderDto`), window
+  `(before − 24 h, before]` (`ReminderService.DueWindow`), newest first, scoped through the task's list. An
+  offset-less `before` is taken as UTC (reuses `UtcDateTimeConverter.ToUtc`). Additive; no schema change.
+- `ReminderNotifier` (client `core/`): started by an app initializer; polls on sign-in and every 60 s
+  (`exhaustMap`, so slow responses never overlap), failed checks are skipped silently, stops on sign-out. Shows due
+  reminders oldest first, one snackbar at a time (10 s, `politeness: 'assertive'`), **Open** navigates to the task;
+  shown ids in `localStorage` (`todo.shownReminders`, last 200).
+- Toolbar: inline navigation on wide screens, a menu button (Lists, Tags, Sign out) at ≤ 600 px.
+- Focus: after each in-app navigation focus moves to the page's `h1` (or `main` while the page is still loading);
+  the first page load keeps the browser's default focus. Strong focus indicators enabled for Material components;
+  `:focus-visible` outline for links, the color input and headings.
+- Theme follows the OS (`color-scheme: light dark`); links use the theme's primary color (readable in dark mode);
+  tag swatches have an outline so light/dark tag colors stay visible.
+- Reduced motion: Material 22 already disables its animations when the OS requests reduced motion; a global CSS
+  rule covers anything else.
+- Accessibility review: every icon-only button has an `aria-label` (checked by script); per-task status selects
+  include the task title as visually hidden label text; errors use `role="alert"`; headings are `h1` → `h2`.
+- Bundle budget: the toolbar menu and the reminder snackbar bring Material's overlay into the initial bundle —
+  554.65 kB raw / 132.38 kB transfer. The initial warning budget was raised from 500 kB to 600 kB (error stays 1 MB),
+  as allowed by the Phase 5 decision.
+- README: root `README.md` (setup, run, test, API overview, layout, design notes, CI badge); `client/README.md` now
+  points to it.
+- CI: `.github/workflows/ci.yml`. LocalDB is not listed as a standalone tool on the GitHub Windows images but is
+  installed with Visual Studio (`Microsoft.VisualStudio.Component.SQL.LocalDB.Runtime` on both the 2022 and 2025
+  images), so the workflow only starts the `MSSQLLocalDB` instance.
+
+Verification (2026-10-20): backend build 0 warnings; no pending model changes; `dotnet test` 77/77 (3 new: due
+reminders window/isolation, offset-less `before`, endpoint incl. `400`s). Postman run 59 requests / 95 assertions, 0
+failures (2 new requests). Client `ng build` with no warnings after the budget change; `ng test` 56/56 (19 files; new:
+notifier ×5, `getDue`). Live check with the API and `ng serve`: a reminder due one minute earlier was returned through
+the dev proxy with its task title, then removed. **Not yet verified:** CI has not run — it runs on the next push to
+GitHub; the browser click-through, phone-width layout and keyboard checks were not done (no browser automation in
+this session).
 
 ## Progress Log
 
@@ -361,3 +441,5 @@ automation was available in this session; to be checked by the user.
 | 2026-10-20 | 4 | Phase 4 done: subtasks, notes, reminders, tags endpoints (73 tests); Postman collection for the full contract (57 requests passing) |
 | 2026-10-20 | 5 | Phase 5 detailed: refresh token in `localStorage`, UTC date fix in backend, Angular Material, routes and test scope |
 | 2026-10-20 | 5 | Phase 5 done: UTC date fix (74 API tests), Angular client with Material — auth, lists, tasks, task detail, tags (51 client tests) |
+| 2026-10-20 | 6 | Phase 6 detailed: CI (Windows API job), system theme, in-app reminder notifications (decision 7 closed), README |
+| 2026-10-20 | 6 | Phase 6 done: in-app reminders (`GET /api/reminders`), responsive toolbar, system theme, focus management, README, CI workflow (77 API / 56 client tests) |
