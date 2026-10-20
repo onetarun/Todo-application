@@ -1,0 +1,102 @@
+<header class="page-header">
+  <h1>My lists</h1>
+</header>
+
+<mat-card appearance="outlined" class="create-card">
+  <form class="inline-form" [formGroup]="createForm" (ngSubmit)="create()" novalidate>
+    <mat-form-field appearance="outline" class="grow">
+      <mat-label>New list title</mat-label>
+      <input matInput formControlName="title" />
+      @if (createForm.controls.title.hasError('required')) {
+        <mat-error>Title is required.</mat-error>
+      } @else if (createForm.controls.title.hasError('maxlength')) {
+        <mat-error>Title is too long.</mat-error>
+      }
+    </mat-form-field>
+    <mat-form-field appearance="outline" class="grow">
+      <mat-label>Description (optional)</mat-label>
+      <input matInput formControlName="description" />
+      @if (createForm.controls.description.hasError('maxlength')) {
+        <mat-error>Description is too long.</mat-error>
+      }
+    </mat-form-field>
+    <button mat-flat-button type="submit" class="form-button" [disabled]="saving()">
+      <mat-icon aria-hidden="true">add</mat-icon>
+      Add list
+    </button>
+  </form>
+</mat-card>
+
+@if (lists.isLoading()) {
+  <mat-progress-bar mode="indeterminate" aria-label="Loading lists" />
+}
+
+@if (lists.error()) {
+  <div class="error-message" role="alert">
+    <p>{{ loadError() }}</p>
+    <button mat-button type="button" (click)="lists.reload()">Retry</button>
+  </div>
+} @else if (lists.hasValue()) {
+  @if (lists.value().length === 0) {
+    <p class="state-message">You have no lists yet. Create your first one above.</p>
+  } @else {
+    <ul class="lists" aria-label="Lists">
+      @for (list of lists.value(); track list.id) {
+        <li>
+          <mat-card appearance="outlined">
+            @if (editingId() === list.id) {
+              <form class="edit-form" [formGroup]="editForm" (ngSubmit)="saveEdit(list)" novalidate>
+                <mat-form-field appearance="outline">
+                  <mat-label>Title</mat-label>
+                  <input matInput formControlName="title" />
+                  @if (editForm.controls.title.hasError('required')) {
+                    <mat-error>Title is required.</mat-error>
+                  } @else if (editForm.controls.title.hasError('maxlength')) {
+                    <mat-error>Title is too long.</mat-error>
+                  }
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Description</mat-label>
+                  <textarea matInput formControlName="description" rows="2"></textarea>
+                  @if (editForm.controls.description.hasError('maxlength')) {
+                    <mat-error>Description is too long.</mat-error>
+                  }
+                </mat-form-field>
+                <div class="card-actions">
+                  <button mat-button type="button" (click)="cancelEdit()">Cancel</button>
+                  <button mat-flat-button type="submit" [disabled]="saving()">Save</button>
+                </div>
+              </form>
+            } @else {
+              <mat-card-content class="list-row">
+                <div class="list-text">
+                  <a class="list-title" [routerLink]="['/lists', list.id]">{{ list.title }}</a>
+                  @if (list.description) {
+                    <p class="list-description">{{ list.description }}</p>
+                  }
+                  <p class="list-meta">Created {{ list.createdAt | date: 'mediumDate' }}</p>
+                </div>
+                <button
+                  mat-icon-button
+                  type="button"
+                  (click)="startEdit(list)"
+                  [attr.aria-label]="'Rename ' + list.title"
+                >
+                  <mat-icon aria-hidden="true">edit</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
+                  type="button"
+                  (click)="delete(list)"
+                  [attr.aria-label]="'Delete ' + list.title"
+                >
+                  <mat-icon aria-hidden="true">delete</mat-icon>
+                </button>
+              </mat-card-content>
+            }
+          </mat-card>
+        </li>
+      }
+    </ul>
+  }
+}

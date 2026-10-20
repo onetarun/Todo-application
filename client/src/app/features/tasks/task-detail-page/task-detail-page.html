@@ -1,0 +1,305 @@
+@if (task.isLoading() || saving()) {
+  <mat-progress-bar class="top-progress" mode="indeterminate" aria-label="Loading" />
+}
+
+@if (task.error()) {
+  <a mat-button routerLink="/lists" class="back-link">
+    <mat-icon aria-hidden="true">arrow_back</mat-icon>
+    All lists
+  </a>
+  <div class="error-message" role="alert">
+    <p>{{ loadError() }}</p>
+    <button mat-button type="button" (click)="task.reload()">Retry</button>
+  </div>
+} @else if (task.hasValue()) {
+  @let current = task.value();
+
+  <a mat-button [routerLink]="['/lists', current.todoListId]" class="back-link">
+    <mat-icon aria-hidden="true">arrow_back</mat-icon>
+    Back to list
+  </a>
+
+  <header class="page-header">
+    <h1>{{ current.title }}</h1>
+    <button
+      mat-stroked-button
+      type="button"
+      class="danger"
+      (click)="deleteTask(current.todoListId, current.title)"
+    >
+      <mat-icon aria-hidden="true">delete</mat-icon>
+      Delete task
+    </button>
+  </header>
+  <p class="meta">
+    Created {{ current.createdAt | date: 'medium' }} · Updated
+    {{ current.updatedAt | date: 'medium' }}
+  </p>
+
+  <!-- Task fields -->
+  <mat-card appearance="outlined" class="section">
+    <mat-card-header
+      ><mat-card-title><h2>Details</h2></mat-card-title></mat-card-header
+    >
+    <form [formGroup]="taskForm" (ngSubmit)="saveTask()" novalidate>
+      <mat-card-content class="details-form">
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>Title</mat-label>
+          <input matInput formControlName="title" />
+          @if (taskForm.controls.title.hasError('required')) {
+            <mat-error>Title is required.</mat-error>
+          } @else if (taskForm.controls.title.hasError('maxlength')) {
+            <mat-error>Title is too long.</mat-error>
+          }
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>Description</mat-label>
+          <textarea matInput formControlName="description" rows="3"></textarea>
+          @if (taskForm.controls.description.hasError('maxlength')) {
+            <mat-error>Description is too long.</mat-error>
+          }
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Status</mat-label>
+          <mat-select formControlName="status">
+            @for (status of statuses; track status) {
+              <mat-option [value]="status">{{ statusLabels[status] }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Priority</mat-label>
+          <mat-select formControlName="priority">
+            @for (option of priorityOptions; track option.value) {
+              <mat-option [value]="option.value">{{ option.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Due date</mat-label>
+          <input matInput [matDatepicker]="duePicker" formControlName="dueDate" />
+          <mat-datepicker-toggle matIconSuffix [for]="duePicker" />
+          <mat-datepicker #duePicker />
+          @if (taskForm.controls.dueDate.hasError('matDatepickerParse')) {
+            <mat-error>Enter a valid date.</mat-error>
+          }
+        </mat-form-field>
+      </mat-card-content>
+      <mat-card-actions align="end">
+        @if (taskForm.dirty) {
+          <button mat-button type="button" (click)="resetTaskForm()">Discard changes</button>
+        }
+        <button mat-flat-button type="submit" [disabled]="saving() || taskForm.pristine">
+          Save
+        </button>
+      </mat-card-actions>
+    </form>
+  </mat-card>
+
+  <!-- Subtasks -->
+  <mat-card appearance="outlined" class="section">
+    <mat-card-header
+      ><mat-card-title><h2>Subtasks</h2></mat-card-title></mat-card-header
+    >
+    <mat-card-content>
+      @if (current.subtasks.length === 0) {
+        <p class="empty">No subtasks yet.</p>
+      } @else {
+        <ul class="rows" aria-label="Subtasks">
+          @for (subtask of current.subtasks; track subtask.id) {
+            <li class="row">
+              <mat-checkbox
+                class="grow"
+                [checked]="subtask.isCompleted"
+                [disabled]="saving()"
+                (change)="toggleSubtask(subtask, $event.checked)"
+                [class.completed]="subtask.isCompleted"
+              >
+                {{ subtask.title }}
+              </mat-checkbox>
+              <button
+                mat-icon-button
+                type="button"
+                (click)="deleteSubtask(subtask)"
+                [attr.aria-label]="'Delete subtask ' + subtask.title"
+              >
+                <mat-icon aria-hidden="true">close</mat-icon>
+              </button>
+            </li>
+          }
+        </ul>
+      }
+      <form class="inline-form" [formGroup]="subtaskForm" (ngSubmit)="addSubtask()" novalidate>
+        <mat-form-field appearance="outline" class="grow">
+          <mat-label>New subtask</mat-label>
+          <input matInput formControlName="title" />
+          @if (subtaskForm.controls.title.hasError('required')) {
+            <mat-error>Title is required.</mat-error>
+          } @else if (subtaskForm.controls.title.hasError('maxlength')) {
+            <mat-error>Title is too long.</mat-error>
+          }
+        </mat-form-field>
+        <button mat-stroked-button type="submit" class="form-button" [disabled]="saving()">
+          Add
+        </button>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Tags -->
+  <mat-card appearance="outlined" class="section">
+    <mat-card-header
+      ><mat-card-title><h2>Tags</h2></mat-card-title></mat-card-header
+    >
+    <mat-card-content>
+      @if (current.tags.length === 0) {
+        <p class="empty">No tags on this task.</p>
+      } @else {
+        <mat-chip-set aria-label="Assigned tags">
+          @for (tag of current.tags; track tag.id) {
+            <mat-chip (removed)="unassignTag(tag)" [disabled]="saving()">
+              <span class="tag-swatch" matChipAvatar [style.background]="tag.color"></span>
+              {{ tag.name }}
+              <button matChipRemove [attr.aria-label]="'Remove tag ' + tag.name">
+                <mat-icon aria-hidden="true">cancel</mat-icon>
+              </button>
+            </mat-chip>
+          }
+        </mat-chip-set>
+      }
+      <div class="inline-form tag-picker">
+        <mat-form-field appearance="outline" class="grow">
+          <mat-label>Add a tag</mat-label>
+          <mat-select
+            [value]="null"
+            (selectionChange)="assignTag($event)"
+            [disabled]="saving() || availableTags().length === 0"
+          >
+            @for (tag of availableTags(); track tag.id) {
+              <mat-option [value]="tag.id">{{ tag.name }}</mat-option>
+            }
+          </mat-select>
+          @if (allTags.hasValue() && availableTags().length === 0) {
+            <mat-hint>No more tags to add. <a routerLink="/tags">Manage tags</a></mat-hint>
+          }
+        </mat-form-field>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Notes -->
+  <mat-card appearance="outlined" class="section">
+    <mat-card-header
+      ><mat-card-title><h2>Notes</h2></mat-card-title></mat-card-header
+    >
+    <mat-card-content>
+      @if (current.notes.length === 0) {
+        <p class="empty">No notes yet.</p>
+      } @else {
+        <ul class="rows" aria-label="Notes">
+          @for (note of current.notes; track note.id) {
+            <li class="note">
+              @if (editingNoteId() === note.id) {
+                <form
+                  [formGroup]="noteEditForm"
+                  (ngSubmit)="saveNote(note)"
+                  novalidate
+                  class="note-edit"
+                >
+                  <mat-form-field appearance="outline" class="full">
+                    <mat-label>Note</mat-label>
+                    <textarea matInput formControlName="content" rows="3"></textarea>
+                    @if (noteEditForm.controls.content.hasError('required')) {
+                      <mat-error>Note cannot be empty.</mat-error>
+                    } @else if (noteEditForm.controls.content.hasError('maxlength')) {
+                      <mat-error>Note is too long.</mat-error>
+                    }
+                  </mat-form-field>
+                  <div class="row-actions">
+                    <button mat-button type="button" (click)="cancelNoteEdit()">Cancel</button>
+                    <button mat-flat-button type="submit" [disabled]="saving()">Save</button>
+                  </div>
+                </form>
+              } @else {
+                <div class="grow">
+                  <p class="note-content">{{ note.content }}</p>
+                  <p class="meta">{{ note.createdAt | date: 'medium' }}</p>
+                </div>
+                <button
+                  mat-icon-button
+                  type="button"
+                  (click)="startNoteEdit(note)"
+                  aria-label="Edit note"
+                >
+                  <mat-icon aria-hidden="true">edit</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
+                  type="button"
+                  (click)="deleteNote(note)"
+                  aria-label="Delete note"
+                >
+                  <mat-icon aria-hidden="true">delete</mat-icon>
+                </button>
+              }
+            </li>
+          }
+        </ul>
+      }
+      <form [formGroup]="noteForm" (ngSubmit)="addNote()" novalidate class="note-add">
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>New note</mat-label>
+          <textarea matInput formControlName="content" rows="2"></textarea>
+          @if (noteForm.controls.content.hasError('required')) {
+            <mat-error>Note cannot be empty.</mat-error>
+          } @else if (noteForm.controls.content.hasError('maxlength')) {
+            <mat-error>Note is too long.</mat-error>
+          }
+        </mat-form-field>
+        <button mat-stroked-button type="submit" [disabled]="saving()">Add note</button>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Reminders -->
+  <mat-card appearance="outlined" class="section">
+    <mat-card-header
+      ><mat-card-title><h2>Reminders</h2></mat-card-title></mat-card-header
+    >
+    <mat-card-content>
+      @if (current.reminders.length === 0) {
+        <p class="empty">No reminders set.</p>
+      } @else {
+        <ul class="rows" aria-label="Reminders">
+          @for (reminder of current.reminders; track reminder.id) {
+            <li class="row">
+              <mat-icon aria-hidden="true">alarm</mat-icon>
+              <span class="grow">{{ reminder.remindAt | date: 'medium' }}</span>
+              <button
+                mat-icon-button
+                type="button"
+                (click)="deleteReminder(reminder)"
+                aria-label="Delete reminder"
+              >
+                <mat-icon aria-hidden="true">delete</mat-icon>
+              </button>
+            </li>
+          }
+        </ul>
+      }
+      <form class="inline-form" [formGroup]="reminderForm" (ngSubmit)="addReminder()" novalidate>
+        <mat-form-field appearance="outline" class="grow">
+          <mat-label>Remind me at</mat-label>
+          <input matInput type="datetime-local" formControlName="remindAt" />
+          <mat-hint>Reminders are saved only; notifications are not sent yet.</mat-hint>
+          @if (reminderForm.controls.remindAt.hasError('required')) {
+            <mat-error>Pick a date and time.</mat-error>
+          }
+        </mat-form-field>
+        <button mat-stroked-button type="submit" class="form-button" [disabled]="saving()">
+          Add reminder
+        </button>
+      </form>
+    </mat-card-content>
+  </mat-card>
+}

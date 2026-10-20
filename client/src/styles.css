@@ -1,1 +1,64 @@
-/* You can add global styles to this file, and also import other style files */
+/* Global layout helpers shared by the pages. Colors and type come from the Material theme (material-theme.scss). */
+
+.page-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: 16px;
+}
+
+.page-header h1 {
+  flex: 1;
+  margin: 0;
+  font: var(--mat-sys-headline-small);
+}
+
+.inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0 12px;
+}
+
+.inline-form .grow {
+  flex: 1 1 220px;
+}
+
+.state-message {
+  padding: 24px 0;
+  color: var(--mat-sys-on-surface-variant);
+  text-align: center;
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+}
+
+.error-message p {
+  flex: 1;
+  margin: 0;
+}
+
+.tag-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

@@ -1,0 +1,46 @@
+<mat-card class="auth-card" appearance="outlined">
+  @if (submitting()) {
+    <mat-progress-bar mode="indeterminate" aria-label="Signing in" />
+  }
+  <mat-card-header>
+    <mat-card-title><h1>Sign in</h1></mat-card-title>
+  </mat-card-header>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <mat-card-content>
+      @if (error(); as message) {
+        <div class="error-message" role="alert">
+          <p>{{ message }}</p>
+        </div>
+      }
+
+      <mat-form-field appearance="outline">
+        <mat-label>Email</mat-label>
+        <input matInput type="email" formControlName="email" autocomplete="email" />
+        @if (form.controls.email.hasError('required')) {
+          <mat-error>Email is required.</mat-error>
+        } @else if (form.controls.email.hasError('email')) {
+          <mat-error>Enter a valid email address.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Password</mat-label>
+        <input
+          matInput
+          type="password"
+          formControlName="password"
+          autocomplete="current-password"
+        />
+        @if (form.controls.password.hasError('required')) {
+          <mat-error>Password is required.</mat-error>
+        }
+      </mat-form-field>
+    </mat-card-content>
+
+    <mat-card-actions class="actions">
+      <a mat-button routerLink="/register">Create an account</a>
+      <button mat-flat-button type="submit" [disabled]="submitting()">Sign in</button>
+    </mat-card-actions>
+  </form>
+</mat-card>

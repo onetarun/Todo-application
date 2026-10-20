@@ -1,0 +1,147 @@
+<a mat-button routerLink="/lists" class="back-link">
+  <mat-icon aria-hidden="true">arrow_back</mat-icon>
+  All lists
+</a>
+
+@if (list.error() || tasks.error()) {
+  <div class="error-message" role="alert">
+    <p>{{ loadError() }}</p>
+    <button mat-button type="button" (click)="list.reload(); tasks.reload()">Retry</button>
+  </div>
+} @else {
+  <header class="page-header">
+    <h1>{{ list.hasValue() ? list.value().title : 'Tasks' }}</h1>
+  </header>
+  @if (list.hasValue() && list.value().description) {
+    <p class="list-description">{{ list.value().description }}</p>
+  }
+
+  <mat-card appearance="outlined" class="create-card">
+    <form class="inline-form" [formGroup]="createForm" (ngSubmit)="create()" novalidate>
+      <mat-form-field appearance="outline" class="grow">
+        <mat-label>New task</mat-label>
+        <input matInput formControlName="title" />
+        @if (createForm.controls.title.hasError('required')) {
+          <mat-error>Title is required.</mat-error>
+        } @else if (createForm.controls.title.hasError('maxlength')) {
+          <mat-error>Title is too long.</mat-error>
+        }
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="narrow">
+        <mat-label>Priority</mat-label>
+        <mat-select formControlName="priority">
+          @for (option of priorityOptions; track option.value) {
+            <mat-option [value]="option.value">{{ option.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="narrow">
+        <mat-label>Due date</mat-label>
+        <input matInput [matDatepicker]="createPicker" formControlName="dueDate" />
+        <mat-datepicker-toggle matIconSuffix [for]="createPicker" />
+        <mat-datepicker #createPicker />
+        @if (createForm.controls.dueDate.hasError('matDatepickerParse')) {
+          <mat-error>Enter a valid date.</mat-error>
+        }
+      </mat-form-field>
+      <button mat-flat-button type="submit" class="form-button" [disabled]="saving()">
+        <mat-icon aria-hidden="true">add</mat-icon>
+        Add task
+      </button>
+    </form>
+  </mat-card>
+
+  <section class="filters" aria-label="Filter tasks">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Status</mat-label>
+      <mat-select [value]="statusFilter()" (selectionChange)="statusFilter.set($event.value)">
+        <mat-option [value]="null">Any</mat-option>
+        @for (status of statuses; track status) {
+          <mat-option [value]="status">{{ statusLabels[status] }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Priority</mat-label>
+      <mat-select [value]="priorityFilter()" (selectionChange)="priorityFilter.set($event.value)">
+        <mat-option [value]="null">Any</mat-option>
+        @for (option of priorityOptions; track option.value) {
+          <mat-option [value]="option.value">{{ option.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Tag</mat-label>
+      <mat-select [value]="tagFilter()" (selectionChange)="tagFilter.set($event.value)">
+        <mat-option [value]="null">Any</mat-option>
+        @if (tags.hasValue()) {
+          @for (tag of tags.value(); track tag.id) {
+            <mat-option [value]="tag.id">{{ tag.name }}</mat-option>
+          }
+        }
+      </mat-select>
+    </mat-form-field>
+    @if (hasFilters()) {
+      <button mat-button type="button" (click)="clearFilters()">Clear filters</button>
+    }
+  </section>
+
+  @if (tasks.isLoading()) {
+    <mat-progress-bar mode="indeterminate" aria-label="Loading tasks" />
+  }
+
+  @if (tasks.hasValue()) {
+    @if (tasks.value().length === 0) {
+      <p class="state-message">
+        {{ hasFilters() ? 'No tasks match these filters.' : 'No tasks yet. Add one above.' }}
+      </p>
+    } @else {
+      <ul class="tasks" aria-label="Tasks">
+        @for (task of tasks.value(); track task.id) {
+          <li class="task" [class.done]="task.status === 'Done'">
+            <div class="task-main">
+              <a class="task-title" [routerLink]="['/tasks', task.id]">{{ task.title }}</a>
+              <div class="task-meta">
+                <span class="priority priority-{{ task.priority }}"
+                  >{{ priorityLabel(task.priority) }} priority</span
+                >
+                @if (task.dueDate) {
+                  <span>Due {{ task.dueDate | date: 'mediumDate' : 'UTC' }}</span>
+                }
+              </div>
+              @if (task.tags.length > 0) {
+                <mat-chip-set aria-label="Tags">
+                  @for (tag of task.tags; track tag.id) {
+                    <mat-chip>
+                      <span class="tag-swatch" matChipAvatar [style.background]="tag.color"></span>
+                      {{ tag.name }}
+                    </mat-chip>
+                  }
+                </mat-chip-set>
+              }
+            </div>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="status-select">
+              <mat-label>Status</mat-label>
+              <mat-select
+                [value]="task.status"
+                (selectionChange)="changeStatus(task, $event.value)"
+              >
+                @for (status of statuses; track status) {
+                  <mat-option [value]="status">{{ statusLabels[status] }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <button
+              mat-icon-button
+              type="button"
+              (click)="delete(task)"
+              [attr.aria-label]="'Delete ' + task.title"
+            >
+              <mat-icon aria-hidden="true">delete</mat-icon>
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  }
+}

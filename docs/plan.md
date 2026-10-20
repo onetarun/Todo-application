@@ -252,18 +252,93 @@ service tests for subtasks, notes, reminders, tags; endpoint tests for every Pha
 isolation, idempotent tag assignment, tag delete cascade, auth required). `postman collection run` against the local
 API: 57 requests, 91 assertions, 0 failures. OpenAPI document lists all Phase 4 routes.
 
-## Phase 5 — Angular Client — `Planned`
+## Phase 5 — Angular Client — `Done`
 
-- [ ] `provideHttpClient()` and API base URL config / dev proxy
-- [ ] Models mirroring backend DTOs (lists, tasks, subtasks, notes, reminders, tags, auth)
-- [ ] Services per resource (HttpClient wrappers); auth interceptor and route guard
-- [ ] Login / register pages
-- [ ] Lists page: view, create, rename, delete lists
-- [ ] Tasks view: list tasks in a list; filter by status / priority / tag; change status; delete
-- [ ] Task detail: edit task; manage subtasks, notes, reminders, and tags
-- [ ] Add/edit forms (Reactive Forms, validation messages)
-- [ ] Loading, empty, and error states
-- [ ] Component and service unit tests
+Decisions (2026-10-20):
+- **Refresh token storage:** `localStorage` (no backend change). Access token kept in memory only; on page load the
+  stored refresh token is exchanged for a new access token. Trade-off accepted: script-readable (XSS), mitigated by
+  15-minute access tokens and refresh-token rotation with reuse detection.
+- **UTC dates:** fixed in the backend. An EF Core value converter marks every `DateTime` read from the database as
+  UTC, so the API serializes `dueDate`, `remindAt`, `createdAt`, `updatedAt` with a `Z`. Same fields and types —
+  approved contract clarification (CLAUDE.md §10). The client models keep dates as ISO strings.
+- **UI library:** Angular Material + CDK (`npx ng add @angular/material`, version matching Angular 22). Plain CSS
+  only for layout; full styling polish stays in Phase 6. The production initial-bundle budget (500 kB warning) may
+  need raising — report the actual size.
+- **Forms:** Reactive Forms (per CLAUDE.md §6), not Signal Forms.
+
+Backend prerequisite:
+- [x] UTC `DateTime` value converter in `TodoDbContext`; test that dates come back with `Z`; Postman run still passes
+
+Client setup:
+- [x] `provideHttpClient(withInterceptors([...]))`; `proxy.conf.json` (`/api` → `http://localhost:5055`) wired into
+  the `serve` target; `API_BASE_URL` injection token (no hard-coded URLs in services)
+- [x] Angular Material added (theme, typography, animations as required by `ng add`)
+
+Models (`src/app/models/`) — mirror the backend DTOs exactly:
+- [x] Auth (`RegisterRequest`, `LoginRequest`, `RefreshRequest`, `AuthResponse`, `User`), `TodoList`, `Task`,
+  `TaskDetail`, `Subtask`, `Note`, `Reminder`, `Tag`, and every request model; `TaskStatus = 'Todo' | 'InProgress' | 'Done'`
+
+Core (`src/app/core/`):
+- [x] `AuthService`: register, login, logout, `me`, refresh; `currentUser` signal; token storage as decided above
+- [x] `authInterceptor`: adds `Bearer` to `/api` calls (not auth endpoints); on `401` refreshes once (concurrent
+  requests share one refresh) and retries; on refresh failure signs out and redirects to `/login`
+- [x] `authGuard` for app routes; `guestGuard` keeps signed-in users away from `/login` and `/register`
+
+Services (`src/app/services/`):
+- [x] `TodoListService`, `TaskService`, `SubtaskService`, `NoteService`, `ReminderService`, `TagService` — thin
+  `HttpClient` wrappers returning Observables
+
+Pages (lazy-loaded, standalone, `OnPush`, signals, `@if`/`@for`, Reactive Forms with validation messages):
+
+| Route | Page |
+|-------|------|
+| `/login`, `/register` | Auth forms; show server errors (`409` duplicate email, `401` bad credentials) |
+| `/lists` | Lists: view, create, rename, delete |
+| `/lists/:listId` | Tasks in a list: filter by status / priority / tag; quick status change; create; delete |
+| `/tasks/:taskId` | Task detail: edit task; manage subtasks, notes, reminders, and tag assignment |
+| `/tags` | Manage global tags (name, color) |
+
+- [x] Login / register pages
+- [x] Lists page
+- [x] Tasks view
+- [x] Task detail
+- [x] Tags page
+- [x] Loading, empty, and error states on every data view; errors shown from ProblemDetails
+- [x] Accessibility: labelled controls, keyboard-operable interactions, `aria-live` for errors
+
+Tests (Vitest via `ng test`):
+- [x] Services and interceptor with `HttpTestingController` (including refresh-and-retry and refresh failure)
+- [x] Guards
+- [x] Key components: login form, lists page, task detail
+
+Verification: `ng build` and `ng test` pass; `dotnet test` and the Postman run still pass after the date fix; manual
+run against the API covering sign-in → lists → tasks → task details.
+
+Implementation notes (2026-10-20):
+- Backend: `Data/UtcDateTimeConverter` applied to every `DateTime` (including nullable) via `ConfigureConventions`.
+  Values without an offset are taken as UTC, local values are converted. No schema change, no migration.
+- Angular 22 conventions followed: `@Service()` (provided in root) for services; components rely on the framework
+  default change detection, which is `OnPush` in Angular 22.
+- Material `22.2.3` via `ng add` (Material 3 azure theme in `src/material-theme.scss`, Roboto and Material Symbols
+  from Google Fonts in `index.html`). Icons use the `material-symbols-outlined` font set.
+- Data loading uses `rxResource` over the services' Observables (loading / error / value signals; `reload()` after
+  every change). Route params bind to component inputs (`withComponentInputBinding`).
+- Session: `provideAppInitializer` restores the session from the stored refresh token before the first navigation;
+  concurrent refreshes share one request (the server rotates refresh tokens and treats reuse as theft). Two browser
+  tabs refreshing at the same moment can still trigger reuse detection and sign both out.
+- Due dates are calendar days: sent as UTC midnight, shown with the `UTC` time zone. Reminders are instants: entered
+  in local time (`datetime-local`), sent as UTC, shown in local time.
+- Task detail keeps unsaved edits in the details form when another section (subtasks, notes, ...) reloads the task.
+- `PATCH /api/subtasks/{id}/complete` is used to tick a subtask; unticking uses `PUT` (the contract has no "uncomplete").
+- Login only follows in-app `returnUrl` values (no open redirect).
+- `src/testing/test-data.ts` holds shared test payloads (excluded from the app build).
+
+Verification (2026-10-20): backend build 0 warnings; no pending model changes; `dotnet test` 74/74 (1 new: dates
+serialize with `Z`); Postman run 57 requests / 91 assertions passing after the date fix. Client `ng build` with no
+warnings — initial bundle 452.5 kB raw / 111.9 kB transfer (under the 500 kB budget, so unchanged); `ng test` 51/51
+(18 files). Live check with the API and `ng serve` running: the dev proxy forwards `/api` (sign-in as the demo user
+through `http://localhost:4200/api` succeeded). **Not done:** a click-through in a real browser — no browser
+automation was available in this session; to be checked by the user.
 
 ## Phase 6 — Polish & Delivery — `Planned`
 
@@ -284,3 +359,5 @@ API: 57 requests, 91 assertions, 0 failures. OpenAPI document lists all Phase 4 
 | 2026-10-20 | 2 | Phase 2 done: JWT bearer auth, rotating refresh tokens, `AuthController`, fallback auth policy, `AddRefreshTokens` migration |
 | 2026-10-20 | 3 | Phase 3 done: lists & tasks API with per-user scoping, `tests/TodoApi.Tests` (43 tests), registration race fixed |
 | 2026-10-20 | 4 | Phase 4 done: subtasks, notes, reminders, tags endpoints (73 tests); Postman collection for the full contract (57 requests passing) |
+| 2026-10-20 | 5 | Phase 5 detailed: refresh token in `localStorage`, UTC date fix in backend, Angular Material, routes and test scope |
+| 2026-10-20 | 5 | Phase 5 done: UTC date fix (74 API tests), Angular client with Material — auth, lists, tasks, task detail, tags (51 client tests) |

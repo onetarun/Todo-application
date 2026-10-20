@@ -1,0 +1,55 @@
+.create-card {
+  padding: 16px 16px 0;
+  margin-bottom: 16px;
+}
+
+.form-button {
+  margin-top: 8px;
+}
+
+.lists {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.list-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px 12px 16px;
+}
+
+.list-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.list-title {
+  font: var(--mat-sys-title-medium);
+  color: var(--mat-sys-primary);
+}
+
+.list-description,
+.list-meta {
+  margin: 4px 0 0;
+}
+
+.list-meta {
+  font: var(--mat-sys-body-small);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  padding: 16px 16px 8px;
+}
+
+.card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

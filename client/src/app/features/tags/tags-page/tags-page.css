@@ -1,0 +1,66 @@
+.intro {
+  margin: -8px 0 16px;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.create-card {
+  padding: 16px 16px 0;
+  margin-bottom: 16px;
+}
+
+.form-button {
+  margin-top: 8px;
+}
+
+.color-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 56px;
+  margin-bottom: 20px;
+}
+
+.color-field input {
+  width: 44px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--mat-sys-outline);
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+}
+
+.tags {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+}
+
+.tag {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+}
+
+.tag-swatch.large {
+  width: 20px;
+  height: 20px;
+}
+
+.tag-name {
+  flex: 1;
+  font: var(--mat-sys-title-small);
+}
+
+.tag-color {
+  font: var(--mat-sys-body-small);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.edit-form {
+  flex: 1;
+  padding-top: 12px;
+}
