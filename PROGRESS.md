@@ -14,8 +14,8 @@ Detailed plan: [docs/plan.md](docs/plan.md) · Setup and usage: [README.md](READ
 
 ## Open issues
 
-- Not yet verified: CI has not run yet (it runs on the next push); the UI has not been clicked through in a real
-  browser, including phone-width layout and keyboard navigation (no browser automation in the sessions that built it).
+- Not yet verified: the UI has not been clicked through in a real browser, including phone-width layout and keyboard
+  navigation (no browser automation in the sessions that built it). CI is green (first run on `f3ee998`).
 - Refresh token is kept in `localStorage` (access token in memory only); accepted XSS trade-off. Two tabs refreshing
   at the same moment can trigger the server's reuse detection and sign the user out.
 - Tags are global: any signed-in user can rename or delete any tag (affects every user's tasks); tag names are not unique.
@@ -24,7 +24,7 @@ Detailed plan: [docs/plan.md](docs/plan.md) · Setup and usage: [README.md](READ
 
 ## Next steps
 
-- Push to GitHub and confirm the CI run is green.
+- Merge `feature/backend-phases-1-3` (Phase 6) into `main` via a pull request.
 - Click through the app in a browser (sign in → lists → tasks → task details → tags → reminder notification), at
   phone and desktop widths and with the keyboard only.
 

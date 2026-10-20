@@ -422,9 +422,9 @@ Verification (2026-10-20): backend build 0 warnings; no pending model changes; `
 reminders window/isolation, offset-less `before`, endpoint incl. `400`s). Postman run 59 requests / 95 assertions, 0
 failures (2 new requests). Client `ng build` with no warnings after the budget change; `ng test` 56/56 (19 files; new:
 notifier ×5, `getDue`). Live check with the API and `ng serve`: a reminder due one minute earlier was returned through
-the dev proxy with its task title, then removed. **Not yet verified:** CI has not run — it runs on the next push to
-GitHub; the browser click-through, phone-width layout and keyboard checks were not done (no browser automation in
-this session).
+the dev proxy with its task title, then removed. CI: first run on commit `f3ee998` green — both jobs passed
+(run 39453448630). **Not yet verified:** the browser click-through, phone-width layout and keyboard checks (no
+browser automation in this session).
 
 ## Progress Log
 
