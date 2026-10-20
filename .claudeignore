@@ -1,0 +1,19 @@
+# Dependencies
+client/node_modules/
+
+# .NET build output
+**/bin/
+**/obj/
+
+# Angular build output and cache
+client/dist/
+client/.angular/
+
+# IDE
+.vs/
+*.user
+
+# Secrets
+.env
+.env.*
+secrets.json
