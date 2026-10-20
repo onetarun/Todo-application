@@ -13,7 +13,7 @@ Backend: ASP.NET Core Web API (.NET 10, controllers). Frontend: Angular 22. Pers
 | # | Decision | Options | Status |
 |---|----------|---------|--------|
 | 1 | Database provider | SQLite (simple, file-based) · SQL Server · PostgreSQL | **SQL Server** (LocalDB `MSSQLLocalDB` for development) |
-| 2 | Git remote | GitHub · GitLab · Azure DevOps | Open |
+| 2 | Git remote | GitHub · GitLab · Azure DevOps | **GitHub** (`https://github.com/onetarun/Todo-application`) |
 | 3 | Authentication mechanism | User accounts required (diagram has `passwordHash`). ASP.NET Core Identity · custom JWT with hashed passwords · external provider | **Custom JWT** with refresh tokens (rotation, stored hashed); passwords hashed with `PasswordHasher<User>`; `User` table as in diagram |
 | 4 | `Task.status` values | Enum stored as string, e.g. `Todo` · `InProgress` · `Done` | **`Todo` · `InProgress` · `Done`**, stored as string |
 | 5 | `Task.priority` range | e.g. `1` (low) – `3` (high) · `1`–`5` | **`1` (low) – `3` (high)**, enforced by check constraint |
@@ -197,7 +197,7 @@ validation, filters), concurrent duplicate registration → one `201` and the re
 (database unreachable) → `500` `application/problem+json` without internal details. A test run found and fixed one
 bug: revoking all refresh tokens on reuse left already-loaded tokens stale within the same `DbContext`.
 
-## Phase 4 — Task Details API — `Planned`
+## Phase 4 — Task Details API — `Done`
 
 | Method | Route | Request | Response |
 |--------|-------|---------|----------|
@@ -220,9 +220,37 @@ bug: revoking all refresh tokens on reuse left already-loaded tokens stale withi
 | PUT | `/api/tasks/{taskId}/tags/{tagId}` | — | `204` · `404` |
 | DELETE | `/api/tasks/{taskId}/tags/{tagId}` | — | `204` · `404` |
 
-- [ ] DTOs, services, and controllers for subtasks, notes, reminders, tags
-- [ ] Unit and integration tests
-- [ ] Postman collection covering the full contract (Phases 3–4)
+- [x] DTOs, services, and controllers for subtasks, notes, reminders, tags
+- [x] Unit and integration tests
+- [x] Postman collection covering the full contract (Phases 3–4)
+
+Implementation notes (2026-10-20):
+- Requests: `CreateSubtaskRequest(Title)`, `UpdateSubtaskRequest(Title, IsCompleted)` (full replace, both required);
+  `CreateNoteRequest` / `UpdateNoteRequest(Content)` (1–4000); `CreateReminderRequest(RemindAt)` (required);
+  `CreateTagRequest` / `UpdateTagRequest(Name, Color)` (name 1–50, color `#RRGGBB`, stored upper case). Text is trimmed.
+- Services `ISubtaskService`, `INoteService`, `IReminderService`, `ITagService`; controllers `SubtasksController`,
+  `NotesController`, `RemindersController`, `TagsController`. Subtasks, notes, reminders and tag assignments are
+  scoped to the current user through the task's list — another user's data returns `404`.
+- `201` responses: the contract has no single-item GET for subtasks, notes, reminders or tags, so `Location` points
+  at the collection (e.g. `/api/tasks/{taskId}/subtasks`, `/api/tags`).
+- `PATCH /api/subtasks/{id}/complete` only sets `IsCompleted = true`; un-completing goes through `PUT`.
+- Tag assignment `PUT`/`DELETE /api/tasks/{taskId}/tags/{tagId}` is idempotent (`204` whether or not it was already
+  assigned); `404` only when the task (for this user) or the tag does not exist. A concurrent duplicate assignment is
+  treated as success.
+- Tags are global (decision 6): any signed-in user can rename or delete any tag, and deleting one removes it from
+  every user's tasks. Tag names are not unique. Reminders are stored only (decision 7 still open); past dates are
+  accepted.
+- Shared helper `DbUpdateExceptionExtensions.IsUniqueConstraintViolation()` (moved out of `AuthService`).
+- No schema change; no migration.
+- Postman: `postman/TodoApi.postman_collection.json` (v2.1, 57 requests in run order: Auth → Lists → Tasks → Subtasks
+  → Notes → Reminders → Tags → Cleanup) and `postman/TodoApi.local.postman_environment.json` (`baseUrl`
+  `http://localhost:5055`). It registers a fresh `postman.<timestamp>@test.local` user each run and deletes the data
+  it creates (the user remains).
+
+Verification (2026-10-20): build 0 warnings / 0 errors; no pending model changes; `dotnet test` 73/73 passed (30 new:
+service tests for subtasks, notes, reminders, tags; endpoint tests for every Phase 4 route, validation, per-user
+isolation, idempotent tag assignment, tag delete cascade, auth required). `postman collection run` against the local
+API: 57 requests, 91 assertions, 0 failures. OpenAPI document lists all Phase 4 routes.
 
 ## Phase 5 — Angular Client — `Planned`
 
@@ -255,3 +283,4 @@ bug: revoking all refresh tokens on reuse left already-loaded tokens stale withi
 | 2026-10-20 | 2 | Phase 2 detailed: JWT + rotating refresh tokens, register/login/refresh/logout/me contract; auth rows moved from Phase 3 |
 | 2026-10-20 | 2 | Phase 2 done: JWT bearer auth, rotating refresh tokens, `AuthController`, fallback auth policy, `AddRefreshTokens` migration |
 | 2026-10-20 | 3 | Phase 3 done: lists & tasks API with per-user scoping, `tests/TodoApi.Tests` (43 tests), registration race fixed |
+| 2026-10-20 | 4 | Phase 4 done: subtasks, notes, reminders, tags endpoints (73 tests); Postman collection for the full contract (57 requests passing) |

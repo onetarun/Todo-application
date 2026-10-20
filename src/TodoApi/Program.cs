@@ -76,6 +76,10 @@ builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITodoListService, TodoListService>();
 builder.Services.AddScoped<ITaskService, TaskService>();
+builder.Services.AddScoped<ISubtaskService, SubtaskService>();
+builder.Services.AddScoped<INoteService, NoteService>();
+builder.Services.AddScoped<IReminderService, ReminderService>();
+builder.Services.AddScoped<ITagService, TagService>();
 
 builder.Services.AddProblemDetails();
 builder.Services.AddControllers()

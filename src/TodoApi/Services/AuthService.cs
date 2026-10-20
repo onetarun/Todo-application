@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using TodoApi.Auth;
 using TodoApi.Data;
@@ -36,7 +35,7 @@ public class AuthService(
         {
             return await IssueTokensAsync(user, cancellationToken);
         }
-        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+        catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation())
         {
             // A concurrent registration with the same email won the race past the AnyAsync check above.
             return null;
@@ -151,10 +150,6 @@ public class AuthService(
     }
 
     private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
-
-    // SQL Server error numbers for duplicate key in a unique index (2601) or unique constraint (2627).
-    private static bool IsUniqueConstraintViolation(DbUpdateException ex) =>
-        ex.InnerException is SqlException { Number: 2601 or 2627 };
 
     private DateTime UtcNow() => timeProvider.GetUtcNow().UtcDateTime;
 }
