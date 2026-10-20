@@ -1,0 +1,92 @@
+.back-link {
+  margin: 0 0 8px -12px;
+}
+
+.list-description {
+  margin: -8px 0 16px;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.create-card {
+  padding: 16px 16px 0;
+  margin-bottom: 16px;
+}
+
+.narrow {
+  flex: 0 1 170px;
+}
+
+.form-button {
+  margin-top: 8px;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.filters mat-form-field {
+  width: 160px;
+}
+
+.tasks {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+}
+
+.task {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+}
+
+.task-main {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.task-title {
+  font: var(--mat-sys-title-medium);
+  color: var(--mat-sys-primary);
+}
+
+.task.done .task-title {
+  text-decoration: line-through;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.task-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  font: var(--mat-sys-body-small);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.priority-3 {
+  color: var(--mat-sys-error);
+  font-weight: 500;
+}
+
+.status-select {
+  width: 150px;
+}
+
+@media (max-width: 600px) {
+  .task {
+    flex-wrap: wrap;
+  }
+
+  .task-main {
+    flex-basis: 100%;
+  }
+}

@@ -1,0 +1,99 @@
+<header class="page-header">
+  <h1>Tags</h1>
+</header>
+<p class="intro">
+  Tags are shared by everyone using the app. Renaming or deleting a tag affects every task that uses
+  it.
+</p>
+
+<mat-card appearance="outlined" class="create-card">
+  <form class="inline-form" [formGroup]="createForm" (ngSubmit)="create()" novalidate>
+    <mat-form-field appearance="outline" class="grow">
+      <mat-label>New tag name</mat-label>
+      <input matInput formControlName="name" />
+      @if (createForm.controls.name.hasError('required')) {
+        <mat-error>Name is required.</mat-error>
+      } @else if (createForm.controls.name.hasError('maxlength')) {
+        <mat-error>Name is too long.</mat-error>
+      }
+    </mat-form-field>
+    <label class="color-field">
+      <span>Color</span>
+      <input type="color" formControlName="color" />
+    </label>
+    <button mat-flat-button type="submit" class="form-button" [disabled]="saving()">
+      <mat-icon aria-hidden="true">add</mat-icon>
+      Add tag
+    </button>
+  </form>
+</mat-card>
+
+@if (tags.isLoading()) {
+  <mat-progress-bar mode="indeterminate" aria-label="Loading tags" />
+}
+
+@if (tags.error()) {
+  <div class="error-message" role="alert">
+    <p>{{ loadError() }}</p>
+    <button mat-button type="button" (click)="tags.reload()">Retry</button>
+  </div>
+} @else if (tags.hasValue()) {
+  @if (tags.value().length === 0) {
+    <p class="state-message">No tags yet. Create one above.</p>
+  } @else {
+    <ul class="tags" aria-label="Tags">
+      @for (tag of tags.value(); track tag.id) {
+        <li class="tag">
+          @if (editingId() === tag.id) {
+            <form
+              class="inline-form edit-form"
+              [formGroup]="editForm"
+              (ngSubmit)="saveEdit(tag)"
+              novalidate
+            >
+              <mat-form-field appearance="outline" class="grow">
+                <mat-label>Name</mat-label>
+                <input matInput formControlName="name" />
+                @if (editForm.controls.name.hasError('required')) {
+                  <mat-error>Name is required.</mat-error>
+                } @else if (editForm.controls.name.hasError('maxlength')) {
+                  <mat-error>Name is too long.</mat-error>
+                }
+              </mat-form-field>
+              <label class="color-field">
+                <span>Color</span>
+                <input type="color" formControlName="color" />
+              </label>
+              <button mat-button type="button" class="form-button" (click)="cancelEdit()">
+                Cancel
+              </button>
+              <button mat-flat-button type="submit" class="form-button" [disabled]="saving()">
+                Save
+              </button>
+            </form>
+          } @else {
+            <span class="tag-swatch large" [style.background]="tag.color" aria-hidden="true"></span>
+            <span class="tag-name">{{ tag.name }}</span>
+            <span class="tag-color">{{ tag.color }}</span>
+            <button
+              mat-icon-button
+              type="button"
+              (click)="startEdit(tag)"
+              [attr.aria-label]="'Edit tag ' + tag.name"
+            >
+              <mat-icon aria-hidden="true">edit</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              type="button"
+              (click)="delete(tag)"
+              [attr.aria-label]="'Delete tag ' + tag.name"
+            >
+              <mat-icon aria-hidden="true">delete</mat-icon>
+            </button>
+          }
+        </li>
+      }
+    </ul>
+  }
+}

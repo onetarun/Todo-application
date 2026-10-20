@@ -15,6 +15,11 @@ public class TodoDbContext(DbContextOptions<TodoDbContext> options) : DbContext(
     public DbSet<TaskTag> TaskTags => Set<TaskTag>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        configurationBuilder.Properties<DateTime>().HaveConversion<UtcDateTimeConverter>();
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(TodoDbContext).Assembly);
